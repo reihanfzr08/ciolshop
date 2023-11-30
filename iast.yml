@@ -1,0 +1,41 @@
+name: IAST
+on:
+push:
+    branches:
+      - main
+  pull_request:
+    types: [opened, synchronize, reopened]
+jobs:
+ dast:
+    name: DAST
+    permissions: write-all
+    runs-on: ubuntu-latest
+    steps:
+      - name: Checkout the repo
+        uses: actions/checkout@v3
+
+      - name: Create isolated network
+        run: docker network create --driver bridge isolated      
+
+      - name: Bulding App container
+        run: docker build -t my-php-site:latest .
+        
+      - name: Run App container
+        run: docker run --network=isolated -p 80:80 --name docker-apache -t -d my-php-site:latest
+
+      - name: Get App URL
+        run: |
+          URL=http://$(ip -f inet -o addr show docker0 | awk '{print $4}' | cut -d '/' -f 1)
+          echo "URL=$URL" >> $GITHUB_ENV
+
+      - name: Check App Url
+        run: curl ${{ env.URL }}
+
+      - name: ZAP Scan
+        uses: reihanfzr/action-full-scan@master
+        with:
+          target: ${{ env.URL }}
+          network_name: isolated
+
+      - name: stop docker
+        run: docker stop docker-apache
