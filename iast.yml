@@ -32,7 +32,7 @@ jobs:
         run: curl ${{ env.URL }}
 
       - name: ZAP Scan
-        uses: reihanfzr/action-full-scan@master
+        uses: reihanfzr08/action-full-scan@master
         with:
           target: ${{ env.URL }}
           network_name: isolated
